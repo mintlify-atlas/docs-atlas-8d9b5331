@@ -1,0 +1,114 @@
+---
+title: "Email verification"
+description: "Send a 6-digit OTP to the authenticated user's email and verify the account."
+---
+
+Email verification is a two-step process. Both endpoints require an active session cookie (`userAuth` middleware).
+
+<Steps>
+  <Step title="Request a verification OTP">
+    Call `POST /api/auth/send-verify-otp` while authenticated. The server generates a 6-digit OTP, stores it against your account with a **24-hour expiry**, and sends it to your registered email address.
+  </Step>
+  <Step title="Submit the OTP">
+    Call `POST /api/auth/verify-account` with the OTP from the email. On success, `is_account_verified` is set to `true` and the stored OTP is cleared.
+  </Step>
+</Steps>
+
+---
+
+## Step 1 — Send verification OTP
+
+`POST /api/auth/send-verify-otp` — requires auth cookie
+
+No request body is needed. The user is identified from the JWT in the session cookie.
+
+### Responses
+
+<CodeGroup>
+```json Success
+{
+  "success": true,
+  "message": "Verification OTP Sent on Email"
+}
+```
+
+```json Already verified
+{
+  "success": false,
+  "message": "Account Already verified"
+}
+```
+
+```json Not authenticated (401)
+{
+  "success": false,
+  "message": "Not Authorized. Login Again"
+}
+```
+</CodeGroup>
+
+### curl example
+
+```bash
+curl -b cookies.txt -X POST https://api.example.com/api/auth/send-verify-otp
+```
+
+---
+
+## Step 2 — Verify account
+
+`POST /api/auth/verify-account` — requires auth cookie
+
+### Request body
+
+<ParamField body="otp" type="string" required>
+  The 6-digit OTP received by email.
+</ParamField>
+
+### Responses
+
+<CodeGroup>
+```json Success
+{
+  "success": true,
+  "message": "Email verified successfully"
+}
+```
+
+```json Invalid OTP
+{
+  "success": false,
+  "message": "Invalid OTP"
+}
+```
+
+```json Expired OTP
+{
+  "success": false,
+  "message": "OTP Expired"
+}
+```
+</CodeGroup>
+
+### curl example
+
+```bash
+curl -b cookies.txt -X POST https://api.example.com/api/auth/verify-account \
+  -H "Content-Type: application/json" \
+  -d '{"otp": "482931"}'
+```
+
+---
+
+## OTP details
+
+| Property | Value |
+|---|---|
+| Format | 6-digit numeric string |
+| Generation | `Math.floor(100000 + Math.random() * 900000)` |
+| Expiry | 24 hours from the time of sending |
+| Invalidation | Cleared from the database after successful verification |
+
+<Note>
+  Calling `send-verify-otp` again before the previous OTP expires will overwrite it with a new code and reset the 24-hour window.
+</Note>

@@ -1,0 +1,64 @@
+---
+title: "Security overview"
+description: "A summary of the security layers protecting the QuickFind API, from HTTP headers to role-based access control."
+---
+
+The QuickFind API applies multiple independent security layers. Each layer addresses a different attack surface. This page summarizes the full stack; follow the links for detailed configuration and usage.
+
+## Security layers
+
+| Layer | Technology | Protects against |
+|---|---|---|
+| HTTP security headers | Helmet | Clickjacking, MIME sniffing, XSS, protocol downgrade |
+| Cross-origin control | CORS | Unauthorized cross-origin requests from browsers |
+| Request throttling | express-rate-limit | Brute force, DoS, credential stuffing |
+| Authentication | JWT in HttpOnly cookies | Session hijacking, XSS token theft |
+| Authorization | requireRole middleware | Privilege escalation, unauthorized resource access |
+| Password storage | bcrypt | Credential exposure from database breach |
+| Static analysis | ESLint + eslint-plugin-security | Insecure code patterns caught at development time |
+| Dependency scanning | Snyk | Known CVEs in third-party packages |
+| Code quality | SonarQube | Bugs, code smells, and security hotspots |
+| Penetration testing | OWASP ZAP | Runtime vulnerabilities and injection flaws |
+
+## Helmet (HTTP security headers)
+
+Helmet is applied globally and sets the following response headers on every request:
+
+- **X-Content-Type-Options: nosniff** — prevents MIME-type sniffing
+- **X-Frame-Options: SAMEORIGIN** — blocks clickjacking via iframes
+- **Strict-Transport-Security** — enforces HTTPS on compliant browsers
+- **Content-Security-Policy** — restricts resource loading origins
+- **Cross-Origin-Resource-Policy: cross-origin** — allows cross-origin asset loading (configured explicitly)
+
+## CORS
+
+Allowed origins are set via the `ALLOWED_ORIGINS` environment variable (comma-separated list). Requests from unlisted browser origins are rejected. Requests with no `Origin` header (curl, Postman, mobile apps) are always allowed.
+
+Credentials (cookies) are included in CORS responses. Allowed methods are `GET`, `POST`, `PUT`, `DELETE`, and `OPTIONS`.
+
+## Production vs development differences
+
+Two security behaviors change between environments based on `NODE_ENV`:
+
+| Setting | Development | Production |
+|---|---|---|
+| Cookie `secure` flag | `false` | `true` (HTTPS only) |
+| Cookie `sameSite` flag | `strict` | `none` (required for cross-origin cookies) |
+
+<Note>
+The `sameSite: none` + `secure: true` combination is required when the frontend and API are on different domains. Without `secure: true`, browsers will reject `sameSite: none` cookies.
+</Note>
+
+## Security pages
+
+<CardGroup cols={2}>
+  <Card title="JWT and cookie security" icon="cookie" href="/security/jwt-cookies">
+    How authentication tokens are issued, stored, and validated using HttpOnly cookies.
+  </Card>
+  <Card title="Rate limiting" icon="gauge" href="/security/rate-limiting">
+    Request throttling configuration, IP detection, and 429 response handling.
+  </Card>
+  <Card title="Role-based access control" icon="shield-check" href="/security/role-middleware">
+    How the requireRole middleware enforces admin-only routes.
+  </Card>
+</CardGroup>

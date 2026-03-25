@@ -1,0 +1,168 @@
+---
+title: "Register and login"
+description: "Create a new user account or authenticate an existing one and receive a session cookie."
+---
+
+## Register
+
+`POST /api/auth/register`
+
+Creates a new user account, issues a 12-hour JWT, and sets the `token` HttpOnly cookie. A welcome email is sent to the provided address.
+
+<Info>
+  `rol_id` and `area_id` are fixed server-side to `1` and `9` respectively. Passing any other values returns a `403` error. Do not include these fields in your request.
+</Info>
+
+### Request body
+
+<ParamField body="email" type="string" required>
+  The user's email address. Must be unique across all accounts.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  Plain-text password. Hashed with bcrypt (10 rounds) before storage.
+</ParamField>
+
+<ParamField body="name" type="string" required>
+  First name of the user.
+</ParamField>
+
+<ParamField body="surname" type="string" required>
+  Last name / surname of the user.
+</ParamField>
+
+<ParamField body="country" type="string" required>
+  Country or region of the user.
+</ParamField>
+
+<ParamField body="birth_date" type="string" required>
+  Date of birth in ISO 8601 format (e.g. `1995-06-15`).
+</ParamField>
+
+### Responses
+
+<CodeGroup>
+```json Success
+{
+  "success": true,
+  "message": "Registrado exitosamente"
+}
+```
+
+```json Missing fields
+{
+  "success": false,
+  "message": "Missing Details"
+}
+```
+
+```json Email already registered
+{
+  "success": false,
+  "message": "User already exists"
+}
+```
+
+```json Role/area override attempt (403)
+{
+  "success": false,
+  "message": "Acceso Denegado: No tienes permitido asignar roles o áreas personalizadas."
+}
+```
+</CodeGroup>
+
+### curl example
+
+```bash
+curl -c cookies.txt -X POST https://api.example.com/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "jane@example.com",
+    "password": "s3cr3tP@ss",
+    "name": "Jane",
+    "surname": "Doe",
+    "country": "Mexico",
+    "birth_date": "1995-06-15"
+  }'
+```
+
+---
+
+## Login
+
+`POST /api/auth/login`
+
+Authenticates an existing user. Issues a fresh 12-hour JWT and sets the `token` HttpOnly cookie. Returns the user's role ID.
+
+### Request body
+
+<ParamField body="email" type="string" required>
+  The registered email address.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  The account password.
+</ParamField>
+
+### Responses
+
+<CodeGroup>
+```json Success
+{
+  "success": true,
+  "role": 1
+}
+```
+
+```json Invalid credentials
+{
+  "success": false,
+  "message": "Invalid email"
+}
+```
+
+```json Wrong password
+{
+  "success": false,
+  "message": "Invalid password"
+}
+```
+
+```json Inactive account
+{
+  "success": false,
+  "message": "Tu cuenta ha sido deshabilitada por el administrador."
+}
+```
+</CodeGroup>
+
+### curl example
+
+```bash
+curl -c cookies.txt -b cookies.txt -X POST https://api.example.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "jane@example.com", "password": "s3cr3tP@ss"}'
+```
+
+<Tip>
+  curl does not persist cookies automatically. Use `-c cookies.txt` to **save** the `token` cookie after login, and `-b cookies.txt` to **send** it on subsequent requests to protected endpoints.
+</Tip>
+
+---
+
+## Logout
+
+`POST /api/auth/logout`
+
+Clears the `token` cookie server-side. No request body is required.
+
+```bash
+curl -b cookies.txt -X POST https://api.example.com/api/auth/logout
+```
+
+```json
+{
+  "success": true,
+  "message": "Logged Out"
+}
+```

@@ -1,0 +1,98 @@
+---
+title: "Login"
+description: "Authenticate a user and start a session"
+---
+
+`POST /api/auth/login`
+
+Authenticates a user with email and password. On success, issues a signed JWT and sets it as an `HttpOnly` cookie valid for 12 hours. Returns the user's role identifier so clients can redirect to the appropriate interface.
+
+## Request body
+
+<ParamField body="email" type="string" required>
+  The email address associated with the account.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  The account password. Compared against the stored bcrypt hash.
+</ParamField>
+
+## Response
+
+<ResponseField name="success" type="boolean">
+  `true` when login succeeds, `false` on any failure.
+</ResponseField>
+
+<ResponseField name="role" type="integer">
+  The user's role identifier (`rol_id`). Present only on a successful login.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Human-readable error message. Present only when `success` is `false`.
+</ResponseField>
+
+## Example
+
+```bash
+curl -X POST http://localhost:4000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -c cookies.txt \
+  -d '{
+    "email": "jane@example.com",
+    "password": "s3cur3P@ssw0rd"
+  }'
+```
+
+### Success response
+
+```json
+{
+  "success": true,
+  "role": 1
+}
+```
+
+### Error responses
+
+```json
+{
+  "success": false,
+  "message": "Email and password are required"
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "Invalid email"
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "Invalid password"
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "Tu cuenta ha sido deshabilitada por el administrador."
+}
+```
+
+## Error codes
+
+| HTTP status | `success` | `message` | Cause |
+|-------------|-----------|-----------|-------|
+| 200 | `true` | — | Login successful; `role` field is present |
+| 200 | `false` | `Email and password are required` | Either field was missing from the request body |
+| 200 | `false` | `Invalid email` | No account found for the given email |
+| 200 | `false` | `Invalid password` | Password does not match the stored hash |
+| 200 | `false` | `Tu cuenta ha sido deshabilitada por el administrador.` | Account has been disabled by an admin (`is_active = false`) |
+| 500 | `false` | `Internal Server Error` | Unexpected server error |
+
+<Note>
+  The `token` cookie is `HttpOnly` and `SameSite=Strict` in development, and `Secure` + `SameSite=None` in production. Include `-c cookies.txt -b cookies.txt` in subsequent curl requests to send the session cookie.
+</Note>

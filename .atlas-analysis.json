@@ -1,0 +1,84 @@
+{
+  "projectType": "api-service",
+  "projectName": "QuickFind API",
+  "projectDescription": "A secure Node.js/Express REST API providing authentication, user management, role-based access control, and area classification for the QuickFind platform.",
+  "theme": "sequoia",
+  "primaryColor": "#94cb04",
+  "lightColor": "#545454",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": ["introduction", "quickstart", "environment-setup"]
+          },
+          {
+            "group": "Authentication",
+            "pages": ["auth/overview", "auth/register-login", "auth/email-verification", "auth/password-reset"]
+          },
+          {
+            "group": "Security",
+            "pages": ["security/overview", "security/jwt-cookies", "security/rate-limiting", "security/role-middleware"]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Auth Endpoints",
+            "pages": ["api/auth/register", "api/auth/login", "api/auth/logout", "api/auth/verify-email", "api/auth/password-reset"]
+          },
+          {
+            "group": "User Endpoints",
+            "pages": ["api/users/get-profile", "api/users/list-users", "api/users/update-user", "api/users/delete-user"]
+          },
+          {
+            "group": "Roles & Areas",
+            "pages": ["api/roles/overview", "api/level-areas/overview"]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "JWT-based stateless authentication with HttpOnly cookie storage",
+    "OTP email verification via Nodemailer (Brevo/SMTP)",
+    "Password reset flow with time-limited OTP (15 minutes)",
+    "Role-based access control (RBAC) with middleware enforcement",
+    "bcryptjs password hashing with salt rounds",
+    "Express Rate Limiting (300 req/15min per IP)",
+    "Helmet HTTP security headers",
+    "Configurable CORS with allowlist from environment variables",
+    "PostgreSQL with Sequelize ORM and model associations",
+    "Winston structured logging with daily log rotation",
+    "DevSecOps tooling: ESLint security plugin, Snyk, SonarQube, OWASP ZAP"
+  ],
+  "publicApiSurface": [
+    "POST /api/auth/register",
+    "POST /api/auth/login",
+    "POST /api/auth/logout",
+    "POST /api/auth/send-verify-otp",
+    "POST /api/auth/verify-account",
+    "GET  /api/auth/is-auth",
+    "POST /api/auth/send-reset-otp",
+    "POST /api/auth/reset-password",
+    "GET  /api/user/data",
+    "GET  /api/user/all-users",
+    "PUT  /api/user/update-user/:id",
+    "DELETE /api/user/delete-user/:id",
+    "POST /api/roles/",
+    "GET  /api/roles/",
+    "GET  /api/roles/:id",
+    "PUT  /api/roles/:id",
+    "DELETE /api/roles/:id",
+    "POST /api/levelArea/",
+    "GET  /api/levelArea/",
+    "GET  /api/levelArea/:id",
+    "PUT  /api/levelArea/:id",
+    "DELETE /api/levelArea/:id"
+  ]
+}

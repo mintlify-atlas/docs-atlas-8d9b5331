@@ -1,0 +1,353 @@
+---
+title: "Level Areas API"
+description: "CRUD endpoints for managing organizational level areas in QuickFind."
+---
+
+Level areas represent organizational classifications assigned to users. Each area has a name (`level`), an optional description, and a hex color used for visual identification in the UI.
+
+All responses from this API are wrapped in an envelope object with a `success` boolean, unlike the Roles API which returns data directly.
+
+<Note>
+  Results from `GET /api/levelArea/` are always ordered by `area_id` ascending to ensure stable ordering when records are edited.
+</Note>
+
+---
+
+## POST /api/levelArea/
+
+Create a new level area.
+
+### Body parameters
+
+<ParamField body="level" type="string" required>
+  Unique name identifying the level area (e.g. `"Junior"`, `"Senior"`).
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Optional description of the level area.
+</ParamField>
+
+<ParamField body="color" type="string" default="#fcfcfc">
+  Hex color code for the area (e.g. `"#94cb04"`). Must be a valid 3- or 6-digit hex value. Defaults to `#fcfcfc` if omitted.
+</ParamField>
+
+### Responses
+
+<ResponseField name="success" type="boolean">
+  `true` on success.
+</ResponseField>
+
+<ResponseField name="area" type="object">
+  The newly created level area object.
+  <Expandable title="area properties">
+    <ResponseField name="area_id" type="integer">
+      Auto-incremented primary key.
+    </ResponseField>
+    <ResponseField name="level" type="string">
+      The area name.
+    </ResponseField>
+    <ResponseField name="descripcion" type="string">
+      The area description.
+    </ResponseField>
+    <ResponseField name="color" type="string">
+      The hex color code.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+```bash Example request
+curl --request POST \
+  --url https://your-api.example.com/api/levelArea/ \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "level": "Senior",
+    "descripcion": "Senior level employees",
+    "color": "#94cb04"
+  }'
+```
+
+```json 201 Created
+{
+  "success": true,
+  "area": {
+    "area_id": 3,
+    "level": "Senior",
+    "descripcion": "Senior level employees",
+    "color": "#94cb04",
+    "createdAt": "2026-03-25T10:00:00.000Z",
+    "updatedAt": "2026-03-25T10:00:00.000Z"
+  }
+}
+```
+
+```json 500 Internal Server Error
+{
+  "success": false,
+  "message": "Error message describing what went wrong"
+}
+```
+
+---
+
+## GET /api/levelArea/
+
+Return all level areas, ordered by `area_id` ascending.
+
+### Responses
+
+<ResponseField name="success" type="boolean">
+  `true` on success.
+</ResponseField>
+
+<ResponseField name="areas" type="array">
+  Array of level area objects, ordered by `area_id` ASC.
+  <Expandable title="area properties">
+    <ResponseField name="area_id" type="integer">
+      The area's primary key.
+    </ResponseField>
+    <ResponseField name="level" type="string">
+      The area name.
+    </ResponseField>
+    <ResponseField name="descripcion" type="string">
+      The area description.
+    </ResponseField>
+    <ResponseField name="color" type="string">
+      The hex color code.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+```bash Example request
+curl --request GET \
+  --url https://your-api.example.com/api/levelArea/
+```
+
+```json 200 OK
+{
+  "success": true,
+  "areas": [
+    {
+      "area_id": 1,
+      "level": "Junior",
+      "descripcion": "Junior level employees",
+      "color": "#fcfcfc",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "area_id": 2,
+      "level": "Mid",
+      "descripcion": "Mid level employees",
+      "color": "#aaaaaa",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+```json 500 Internal Server Error
+{
+  "success": false,
+  "message": "Error message describing what went wrong"
+}
+```
+
+---
+
+## GET /api/levelArea/:id
+
+Return a single level area by its primary key.
+
+### Path parameters
+
+<ParamField path="id" type="integer" required>
+  The `area_id` of the level area to retrieve.
+</ParamField>
+
+### Responses
+
+<ResponseField name="success" type="boolean">
+  `true` on success.
+</ResponseField>
+
+<ResponseField name="area" type="object">
+  The level area object.
+  <Expandable title="area properties">
+    <ResponseField name="area_id" type="integer">
+      The area's primary key.
+    </ResponseField>
+    <ResponseField name="level" type="string">
+      The area name.
+    </ResponseField>
+    <ResponseField name="descripcion" type="string">
+      The area description.
+    </ResponseField>
+    <ResponseField name="color" type="string">
+      The hex color code.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+```bash Example request
+curl --request GET \
+  --url https://your-api.example.com/api/levelArea/1
+```
+
+```json 200 OK
+{
+  "success": true,
+  "area": {
+    "area_id": 1,
+    "level": "Junior",
+    "descripcion": "Junior level employees",
+    "color": "#fcfcfc",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  }
+}
+```
+
+```json 404 Not Found
+{
+  "success": false,
+  "message": "Área no encontrada"
+}
+```
+
+```json 500 Internal Server Error
+{
+  "success": false,
+  "message": "Error message describing what went wrong"
+}
+```
+
+---
+
+## PUT /api/levelArea/:id
+
+Update a level area. Only `level`, `descripcion`, and `color` are accepted — any other fields in the request body are ignored.
+
+<Note>
+  The controller explicitly extracts only `level`, `descripcion`, and `color` from the request body before updating the record. Sending additional fields has no effect.
+</Note>
+
+### Path parameters
+
+<ParamField path="id" type="integer" required>
+  The `area_id` of the level area to update.
+</ParamField>
+
+### Body parameters
+
+<ParamField body="level" type="string">
+  Updated area name. Must remain unique.
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Updated area description.
+</ParamField>
+
+<ParamField body="color" type="string">
+  Updated hex color code (e.g. `"#ff0000"`). Must be a valid 3- or 6-digit hex value.
+</ParamField>
+
+### Responses
+
+<ResponseField name="success" type="boolean">
+  `true` on success.
+</ResponseField>
+
+<ResponseField name="area" type="object">
+  The updated level area object.
+  <Expandable title="area properties">
+    <ResponseField name="area_id" type="integer">
+      The area's primary key.
+    </ResponseField>
+    <ResponseField name="level" type="string">
+      The updated area name.
+    </ResponseField>
+    <ResponseField name="descripcion" type="string">
+      The updated area description.
+    </ResponseField>
+    <ResponseField name="color" type="string">
+      The updated hex color code.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+```bash Example request
+curl --request PUT \
+  --url https://your-api.example.com/api/levelArea/1 \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "color": "#ff0000"
+  }'
+```
+
+```json 200 OK
+{
+  "success": true,
+  "area": {
+    "area_id": 1,
+    "level": "Junior",
+    "descripcion": "Junior level employees",
+    "color": "#ff0000",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-03-25T10:05:00.000Z"
+  }
+}
+```
+
+```json 404 Not Found
+{
+  "success": false,
+  "message": "Área no encontrada"
+}
+```
+
+```json 500 Internal Server Error
+{
+  "success": false,
+  "message": "Error message describing what went wrong"
+}
+```
+
+---
+
+## DELETE /api/levelArea/:id
+
+Permanently delete a level area.
+
+### Path parameters
+
+<ParamField path="id" type="integer" required>
+  The `area_id` of the level area to delete.
+</ParamField>
+
+### Responses
+
+Returns `204 No Content` with no response body on success.
+
+```bash Example request
+curl --request DELETE \
+  --url https://your-api.example.com/api/levelArea/1
+```
+
+```text 204 No Content
+(no body)
+```
+
+```json 404 Not Found
+{
+  "success": false,
+  "message": "Área no encontrada"
+}
+```
+
+```json 500 Internal Server Error
+{
+  "success": false,
+  "message": "Error message describing what went wrong"
+}
+```

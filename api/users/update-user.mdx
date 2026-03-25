@@ -1,0 +1,102 @@
+---
+title: "Update user"
+description: "Update one or more fields on an existing user account. Requires admin role."
+---
+
+```http
+PUT /api/user/update-user/:id
+```
+
+Updates the specified user. All body fields are optional — only fields present in the request are applied. Sensitive fields (`rol_id`, `area_id`) trigger an additional JWT verification step beyond the standard middleware check.
+
+<Warning>
+  Requires a valid `token` cookie **and** admin role (`role = 3`). Requests from non-admin users are rejected by the `requireRole` middleware before reaching this handler.
+</Warning>
+
+## Path parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the user to update.
+</ParamField>
+
+## Request body
+
+All fields are optional. Include only the fields you want to change.
+
+<ParamField body="name" type="string">
+  User's first name.
+</ParamField>
+
+<ParamField body="surname" type="string">
+  User's surname.
+</ParamField>
+
+<ParamField body="email" type="string">
+  User's email address.
+</ParamField>
+
+<ParamField body="country" type="string">
+  User's country.
+</ParamField>
+
+<ParamField body="birth_date" type="date">
+  User's date of birth (e.g. `"1990-05-14"`).
+</ParamField>
+
+<ParamField body="rol_id" type="integer">
+  Role ID to assign to the user. **Admin only.** If present, the endpoint re-verifies the cookie JWT and confirms `role === 3` as a second security layer, in addition to the `requireRole` middleware check.
+</ParamField>
+
+<ParamField body="area_id" type="integer">
+  Area ID to assign to the user. **Admin only.** Subject to the same double-verification as `rol_id`.
+</ParamField>
+
+<ParamField body="is_active" type="boolean">
+  Enable (`true`) or disable (`false`) the user account.
+</ParamField>
+
+<ParamField body="is_account_verified" type="boolean">
+  Mark the user's account as verified or unverified.
+</ParamField>
+
+<Note>
+  If `rol_id` or `area_id` are included in the request, the server performs an extra in-handler JWT check (in addition to the `requireRole` middleware). A missing, expired, or non-admin token at that point returns a `403`.
+</Note>
+
+## Response
+
+<ResponseField name="success" type="boolean" required>
+  `true` on a successful update.
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Confirmation message: `"Usuario actualizado correctamente"`.
+</ResponseField>
+
+## Example
+
+```bash
+curl --request PUT \
+  --url https://api.example.com/api/user/update-user/42 \
+  --cookie "token=ADMIN_AUTH_TOKEN" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "name": "Jane",
+    "is_active": false
+  }'
+```
+
+```json
+{
+  "success": true,
+  "message": "Usuario actualizado correctamente"
+}
+```
+
+## Error codes
+
+| Status | `message`                                                                                      | Cause                                                                             |
+| ------ | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 403    | `Acceso Denegado: No tienes permisos de Administrador para modificar roles o áreas.`           | `rol_id` or `area_id` were supplied but the in-handler JWT check failed.          |
+| 404    | `Usuario no encontrado`                                                                        | No user exists with the given `:id`.                                              |
+| 500    | `Error al actualizar usuario`                                                                  | Unexpected server-side error.                                                     |

@@ -1,0 +1,57 @@
+---
+title: "Delete user"
+description: "Permanently delete a user account by ID. Requires admin role."
+---
+
+```http
+DELETE /api/user/delete-user/:id
+```
+
+Permanently removes the specified user from the system. This action cannot be undone.
+
+<Warning>
+  Requires a valid `token` cookie **and** admin role (`role = 3`). Requests from non-admin users are rejected by the `requireRole` middleware before reaching this handler.
+</Warning>
+
+<Warning>
+  An admin cannot delete their own account. The endpoint compares the `:id` path parameter against the authenticated user's ID and rejects self-deletion with a `400`.
+</Warning>
+
+## Path parameters
+
+<ParamField path="id" type="integer" required>
+  The ID of the user to delete.
+</ParamField>
+
+## Response
+
+<ResponseField name="success" type="boolean" required>
+  `true` on a successful deletion.
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Confirmation message: `"Usuario eliminado correctamente"`.
+</ResponseField>
+
+## Example
+
+```bash
+curl --request DELETE \
+  --url https://api.example.com/api/user/delete-user/42 \
+  --cookie "token=ADMIN_AUTH_TOKEN"
+```
+
+```json
+{
+  "success": true,
+  "message": "Usuario eliminado correctamente"
+}
+```
+
+## Error codes
+
+| Status | `message`                        | Cause                                                        |
+| ------ | -------------------------------- | ------------------------------------------------------------ |
+| 400    | `No puedes eliminar tu propia cuenta.` | The `:id` matches the authenticated user's own ID.     |
+| 404    | `Usuario no encontrado`          | No user exists with the given `:id`.                         |
+| 500    | `Error al eliminar usuario`      | Unexpected server-side error.                                |

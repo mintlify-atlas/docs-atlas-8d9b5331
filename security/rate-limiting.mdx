@@ -1,0 +1,85 @@
+---
+title: "Rate limiting"
+description: "How QuickFind throttles requests per IP to protect against brute force attacks and denial-of-service."
+---
+
+All API routes are protected by a global rate limiter using `express-rate-limit`. The limiter runs before route handlers and applies to every endpoint without exception.
+
+## Limit configuration
+
+| Setting | Value |
+|---|---|
+| Window duration | 15 minutes |
+| Maximum requests per window | 300 per IP |
+| Standard headers | Enabled (`RateLimit-*`) |
+| Legacy headers | Disabled (`X-RateLimit-*` not sent) |
+
+## Response headers
+
+When `standardHeaders: true` is set, the API includes rate limit metadata in every response:
+
+```http
+RateLimit-Limit: 300
+RateLimit-Remaining: 247
+RateLimit-Reset: 1711400400
+```
+
+- `RateLimit-Limit` — the maximum number of requests allowed in the window
+- `RateLimit-Remaining` — how many requests the client can still make in the current window
+- `RateLimit-Reset` — Unix timestamp when the window resets
+
+Clients can read these headers to implement backoff logic without waiting for a 429 response.
+
+## 429 response
+
+When a client exceeds 300 requests in a 15-minute window, the server returns:
+
+```json
+{
+  "success": false,
+  "message": "Demasiadas solicitudes al servidor. Intente nuevamente en unos minutos."
+}
+```
+
+HTTP status: `429 Too Many Requests`.
+
+The event is also written to the application warning log with the client IP for monitoring and alerting.
+
+## IP detection
+
+The API runs behind NGINX and AWS load balancers. To identify the real client IP (rather than the proxy IP), the server:
+
+1. Sets `app.set('trust proxy', 1)` — tells Express to trust one hop of `X-Forwarded-For`.
+2. Reads the `x-forwarded-for` request header.
+3. Takes the first IP in the comma-separated list (the leftmost entry is the original client).
+4. Strips the IPv6-mapped IPv4 prefix (`::ffff:`) if present.
+
+```javascript IP detection logic
+const getClientIP = (req) => {
+  let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+  if (ip && ip.includes(',')) ip = ip.split(',')[0];
+
+  return ip?.replace(/^::ffff:/, '');
+};
+```
+
+<Note>
+The `x-forwarded-for` header is included in the CORS allowed headers list, so it passes through preflight checks.
+</Note>
+
+## Development tips
+
+<Tip>
+During local development, all requests originate from `127.0.0.1`, so the 300-request limit is shared across your entire test suite. If integration tests hit the limit, either increase `max` via an environment variable or reset the window by restarting the server.
+</Tip>
+
+The limit is set to `300` in `server.js`. To make it configurable without code changes during local testing, you can modify `server.js` to read the value from an environment variable:
+
+```javascript server.js (suggested change)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_MAX || '300', 10),
+  // ...
+});
+```

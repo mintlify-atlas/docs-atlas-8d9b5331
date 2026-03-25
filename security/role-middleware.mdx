@@ -1,0 +1,95 @@
+---
+title: "Role-based access control"
+description: "How QuickFind uses the requireRole middleware to restrict admin-only routes based on the role ID stored in the JWT."
+---
+
+QuickFind uses a numeric role system. Each user has a `role` field stored in the database and embedded in their JWT payload. The `requireRole` middleware compares this value against a list of permitted role IDs before allowing access to a route.
+
+## Role IDs
+
+| Role ID | Role name | Access level |
+|---|---|---|
+| `1` | User | Own profile data only |
+| `3` | Admin | Full user management |
+
+<Note>
+Role ID `3` is defined as `ADMIN_ROLE` in `userRoutes.js`. The constant makes it straightforward to update the admin role ID without modifying every route definition.
+</Note>
+
+## How requireRole works
+
+The middleware is a factory function that accepts an array of permitted role IDs and returns an Express middleware handler:
+
+```javascript requireRole.js
+const requireRole = (allowedRoles = []) => {
+  return (req, res, next) => {
+    if (!req.userRole) {
+      return res.status(401).json({
+        success: false,
+        message: 'No se encontró información de rol. Autentícate nuevamente.',
+      });
+    }
+
+    if (!allowedRoles.includes(req.userRole)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Acceso denegado: no tienes permisos de Administrador para esta acción.',
+      });
+    }
+
+    next();
+  };
+};
+```
+
+`req.userRole` is set by `userAuth` middleware from the JWT payload. Because `requireRole` always runs after `userAuth`, the role value comes from a verified, server-signed token — not from a user-supplied request parameter.
+
+## Route permissions
+
+| Method | Route | Middleware chain | Required role |
+|---|---|---|---|
+| `GET` | `/api/user/data` | `userAuth` | Any authenticated user |
+| `GET` | `/api/user/all-users` | `userAuth` → `requireRole([3])` | Admin (3) |
+| `PUT` | `/api/user/update-user/:id` | `userAuth` → `requireRole([3])` | Admin (3) |
+| `DELETE` | `/api/user/delete-user/:id` | `userAuth` → `requireRole([3])` | Admin (3) |
+
+## Unauthorized access responses
+
+### Missing role information
+
+If `req.userRole` is not set (should not occur in normal flow, as `userAuth` always runs first):
+
+```json
+{
+  "success": false,
+  "message": "No se encontró información de rol. Autentícate nuevamente."
+}
+```
+
+HTTP status: `401`.
+
+### Insufficient role
+
+If the user is authenticated but their role ID is not in the allowed list:
+
+```json
+{
+  "success": false,
+  "message": "Acceso denegado: no tienes permisos de Administrador para esta acción."
+}
+```
+
+HTTP status: `403`.
+
+## Dual security on updateUser
+
+The `PUT /api/user/update-user/:id` route applies two layers of role enforcement:
+
+1. **requireRole([3])** — rejects non-admin requests at the routing level before the controller runs.
+2. **JWT re-verification inside the controller** — when the update includes role or area changes, the controller re-reads the token from `req.cookies.token` and re-verifies the caller's identity and role before committing sensitive field changes.
+
+This prevents an attacker who obtains a valid session from escalating another user's role even if they find a way to bypass the middleware layer.
+
+<Warning>
+Always place `userAuth` before `requireRole` in the middleware chain. `requireRole` reads `req.userRole` which is only populated after `userAuth` verifies the JWT.
+</Warning>

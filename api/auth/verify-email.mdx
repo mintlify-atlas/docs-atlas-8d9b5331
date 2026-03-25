@@ -1,0 +1,182 @@
+---
+title: "Verify email"
+description: "Send a verification OTP and confirm an email address"
+---
+
+Email verification is a two-step flow:
+
+1. **Send OTP** — request a 6-digit code to be sent to the authenticated user's email address.
+2. **Verify account** — submit the code to mark the account as verified.
+
+Both endpoints require an authenticated session (valid `token` cookie).
+
+---
+
+## Step 1 — Send verification OTP
+
+`POST /api/auth/send-verify-otp`
+
+Generates a 6-digit OTP, stores it against the user record with a **24-hour expiry**, and sends it to the user's registered email address.
+
+### Request body
+
+<ParamField body="userId" type="string">
+  Optional. The ID of the user to send the OTP to. If omitted, the ID is taken from the authenticated session token (`req.userID`).
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  `true` when the OTP was sent, `false` otherwise.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Status message.
+</ResponseField>
+
+### Example
+
+```bash
+curl -X POST http://localhost:4000/api/auth/send-verify-otp \
+  -H "Content-Type: application/json" \
+  -b cookies.txt
+```
+
+#### Success response
+
+```json
+{
+  "success": true,
+  "message": "Verification OTP Sent on Email"
+}
+```
+
+#### Error responses
+
+```json
+{
+  "success": false,
+  "message": "Account Already verified"
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "User not found"
+}
+```
+
+### Error codes
+
+| HTTP status | `success` | `message` | Cause |
+|-------------|-----------|-----------|-------|
+| 200 | `true` | `Verification OTP Sent on Email` | OTP generated and emailed |
+| 400 | `false` | `User ID is required` | No `userId` in body and no session token present |
+| 200 | `false` | `User not found` | No user record matches the resolved user ID |
+| 200 | `false` | `Account Already verified` | The account's `is_account_verified` flag is already `true` |
+
+---
+
+## Step 2 — Verify account
+
+`POST /api/auth/verify-account`
+
+Accepts the 6-digit OTP and, if valid and unexpired, marks the account as verified. The OTP is invalidated after successful use.
+
+### Request body
+
+<ParamField body="otp" type="string" required>
+  The 6-digit verification code received by email.
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  `true` when the email was verified successfully, `false` otherwise.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Status message.
+</ResponseField>
+
+### Example
+
+```bash
+curl -X POST http://localhost:4000/api/auth/verify-account \
+  -H "Content-Type: application/json" \
+  -b cookies.txt \
+  -d '{"otp": "482910"}'
+```
+
+#### Success response
+
+```json
+{
+  "success": true,
+  "message": "Email verified successfully"
+}
+```
+
+#### Error responses
+
+```json
+{
+  "success": false,
+  "message": "Invalid OTP"
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "OTP Expired"
+}
+```
+
+### Error codes
+
+| HTTP status | `success` | `message` | Cause |
+|-------------|-----------|-----------|-------|
+| 200 | `true` | `Email verified successfully` | OTP matched and account is now verified |
+| 400 | `false` | `OTP is required` | `otp` field was missing from the request body |
+| 200 | `false` | `User not found` | No user record matches the session token |
+| 200 | `false` | `Invalid OTP` | Submitted OTP does not match the stored value |
+| 200 | `false` | `OTP Expired` | OTP was valid but the 24-hour window has passed |
+
+<Warning>
+  Both endpoints require a valid `token` cookie. Calls without an authenticated session will be rejected by the `userAuth` middleware before reaching the handler.
+</Warning>
+
+---
+
+## Check authentication status
+
+`GET /api/auth/is-auth`
+
+A lightweight endpoint to verify whether the current session cookie is valid. Useful for client-side auth guards on page load.
+
+Requires a valid `token` cookie. If the token is valid and the account is active, returns success. If the token is missing, expired, or the account is disabled, the `userAuth` middleware returns the appropriate error.
+
+### Example
+
+```bash
+curl -X GET http://localhost:4000/api/auth/is-auth \
+  -b cookies.txt
+```
+
+### Success response
+
+```json
+{
+  "success": true
+}
+```
+
+### Error responses
+
+| HTTP status | `message` | Cause |
+|---|---|---|
+| 200 (via middleware) | `Not Authorized. Login Again` | No cookie present |
+| 401 | `SESSION_EXPIRED` | Token has expired |
+| 403 | `ACCOUNT_DISABLED_FORCE_LOGOUT` | Account deactivated |

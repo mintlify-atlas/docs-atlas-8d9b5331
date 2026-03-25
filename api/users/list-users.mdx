@@ -1,0 +1,98 @@
+---
+title: "List users"
+description: "Retrieve a list of all users in the system. Requires admin role."
+---
+
+```http
+GET /api/user/all-users
+```
+
+Returns all registered users ordered by ID ascending. Password fields are excluded from every record. Resolved role and area names are included alongside their numeric IDs.
+
+<Warning>
+  Requires a valid `token` cookie **and** admin role (`role = 3`). Requests from non-admin users are rejected by the `requireRole` middleware before reaching this handler.
+</Warning>
+
+## Response
+
+<ResponseField name="success" type="boolean" required>
+  `true` on a successful response.
+</ResponseField>
+
+<ResponseField name="users" type="object[]" required>
+  Array of user objects ordered by `id` ASC.
+  <Expandable title="user properties">
+    <ResponseField name="id" type="integer">
+      Unique user ID.
+    </ResponseField>
+    <ResponseField name="email" type="string">
+      User's email address.
+    </ResponseField>
+    <ResponseField name="rol_id" type="integer">
+      Numeric role ID.
+    </ResponseField>
+    <ResponseField name="role_name" type="string">
+      Human-readable role name. `null` if no role is assigned.
+    </ResponseField>
+    <ResponseField name="area_id" type="integer">
+      Numeric area ID.
+    </ResponseField>
+    <ResponseField name="area_level" type="string">
+      Human-readable area name. `null` if no area is assigned.
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      User's first name.
+    </ResponseField>
+    <ResponseField name="surname" type="string">
+      User's surname.
+    </ResponseField>
+    <ResponseField name="country" type="string">
+      User's country.
+    </ResponseField>
+    <ResponseField name="birth_date" type="date">
+      User's date of birth.
+    </ResponseField>
+    <ResponseField name="is_account_verified" type="boolean">
+      Whether the user's account has been verified.
+    </ResponseField>
+    <ResponseField name="is_active" type="boolean">
+      Whether the user account is currently active.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example
+
+```bash
+curl --request GET \
+  --url https://api.example.com/api/user/all-users \
+  --cookie "token=ADMIN_AUTH_TOKEN"
+```
+
+```json
+{
+  "success": true,
+  "users": [
+    {
+      "id": 1,
+      "email": "jane@example.com",
+      "rol_id": 3,
+      "role_name": "Admin",
+      "area_id": 9,
+      "area_level": "Engineering",
+      "name": "Jane",
+      "surname": "Doe",
+      "country": "US",
+      "birth_date": "1990-05-14",
+      "is_account_verified": true,
+      "is_active": true
+    }
+  ]
+}
+```
+
+## Error codes
+
+| Status | `message`                   | Cause                          |
+| ------ | --------------------------- | ------------------------------ |
+| 500    | `Error al obtener usuarios` | Unexpected server-side error.  |

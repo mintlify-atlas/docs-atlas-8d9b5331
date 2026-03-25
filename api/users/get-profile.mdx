@@ -1,0 +1,82 @@
+---
+title: "Get profile"
+description: "Retrieve the authenticated user's profile data, including role and area details."
+---
+
+```http
+GET /api/user/data
+```
+
+Returns profile information for the currently authenticated user. The response includes resolved role and area names alongside their numeric IDs.
+
+<Info>
+  Requires a valid `token` cookie set at login. No additional role is required — any authenticated user can call this endpoint.
+</Info>
+
+## Response
+
+<ResponseField name="success" type="boolean" required>
+  `true` on a successful response.
+</ResponseField>
+
+<ResponseField name="userData" type="object" required>
+  Profile data for the authenticated user.
+  <Expandable title="properties">
+    <ResponseField name="id" type="integer">
+      Unique user ID.
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      User's first name.
+    </ResponseField>
+    <ResponseField name="email" type="string">
+      User's email address.
+    </ResponseField>
+    <ResponseField name="isAccountVerified" type="boolean">
+      Whether the user's account has been verified.
+    </ResponseField>
+    <ResponseField name="role" type="integer">
+      Numeric role ID assigned to the user.
+    </ResponseField>
+    <ResponseField name="roleName" type="string">
+      Human-readable role name. Returns `"Sin Rol"` if no role is assigned.
+    </ResponseField>
+    <ResponseField name="area" type="integer">
+      Numeric area ID assigned to the user.
+    </ResponseField>
+    <ResponseField name="areaName" type="string">
+      Human-readable area name. Returns `"Sin Área"` if no area is assigned.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example
+
+```bash
+curl --request GET \
+  --url https://api.example.com/api/user/data \
+  --cookie "token=YOUR_AUTH_TOKEN"
+```
+
+```json
+{
+  "success": true,
+  "userData": {
+    "id": 1,
+    "name": "Jane",
+    "email": "jane@example.com",
+    "isAccountVerified": true,
+    "role": 2,
+    "roleName": "Editor",
+    "area": 9,
+    "areaName": "Engineering"
+  }
+}
+```
+
+## Error codes
+
+| Status | `message`           | Cause                                          |
+| ------ | ------------------- | ---------------------------------------------- |
+| 400    | `User ID not found` | The auth token did not contain a user ID.      |
+| 404    | `User not found`    | No user exists for the ID in the token.        |
+| 500    | *(error message)*   | Unexpected server error; message is dynamic.   |

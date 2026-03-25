@@ -1,0 +1,113 @@
+---
+title: "JWT and cookie security"
+description: "How QuickFind issues, stores, and validates JSON Web Tokens using HttpOnly cookies to prevent XSS-based token theft."
+---
+
+## Why cookies instead of Authorization headers
+
+Many APIs pass JWTs in an `Authorization: Bearer <token>` header, which requires JavaScript to read the token from storage and attach it to every request. This means the token must live somewhere JavaScript can access it — typically `localStorage` — which makes it vulnerable to XSS attacks.
+
+QuickFind stores the JWT in an **HttpOnly cookie**. The browser attaches it automatically on every request, and JavaScript cannot read or modify it. An XSS payload has no way to exfiltrate the token.
+
+<Warning>
+Never store JWTs in `localStorage` or `sessionStorage`. Any script running on the page — including injected third-party scripts — can read these values. Use HttpOnly cookies.
+</Warning>
+
+## Cookie properties
+
+| Property | Value | Purpose |
+|---|---|---|
+| `httpOnly` | `true` | JavaScript cannot access the cookie |
+| `secure` | `true` in production, `false` in development | Cookie is only sent over HTTPS |
+| `sameSite` | `none` in production, `strict` in development | Controls cross-origin cookie sending |
+| `maxAge` | 12 hours | Token lifetime before forced re-authentication |
+
+## Token payload
+
+The JWT payload contains two fields:
+
+```json
+{
+  "id": 42,
+  "role": 3
+}
+```
+
+- `id` — the user's database primary key, attached to `req.userID` after verification
+- `role` — the user's role ID, attached to `req.userRole` and used by `requireRole` middleware
+
+The payload is signed but not encrypted. Do not include sensitive fields (passwords, PII) in the token.
+
+## Making authenticated requests
+
+### From a browser (fetch)
+
+```javascript fetch (browser)
+const response = await fetch('https://api.example.com/api/user/data', {
+  method: 'GET',
+  credentials: 'include', // sends the HttpOnly cookie automatically
+});
+
+const data = await response.json();
+```
+
+### From a browser (axios)
+
+```javascript axios (browser)
+import axios from 'axios';
+
+const response = await axios.get('https://api.example.com/api/user/data', {
+  withCredentials: true, // sends the HttpOnly cookie automatically
+});
+```
+
+### From curl
+
+```bash curl
+curl -X GET https://api.example.com/api/user/data \
+  --cookie "token=<your_jwt_token>"
+```
+
+<Note>
+For curl testing during development, you can capture the `Set-Cookie` header from the login response and pass it back with `--cookie`.
+</Note>
+
+## Error codes
+
+The authentication middleware returns machine-readable message strings that the frontend can use to trigger specific UI flows.
+
+### SESSION_EXPIRED
+
+Returned when the JWT signature is valid but the token has passed its 12-hour expiry.
+
+```json
+{
+  "success": false,
+  "message": "SESSION_EXPIRED"
+}
+```
+
+The `token` cookie is cleared server-side when this error occurs. The frontend should redirect the user to the login page.
+
+### ACCOUNT_DISABLED_FORCE_LOGOUT
+
+Returned when a valid, unexpired token is presented but the user's account has been deactivated (`is_active: false`) in the database. This check runs on every authenticated request.
+
+```json
+{
+  "success": false,
+  "message": "ACCOUNT_DISABLED_FORCE_LOGOUT"
+}
+```
+
+HTTP status: `403`. The `token` cookie is cleared server-side. The frontend should display a forced-logout modal and redirect the user.
+
+## Token lifetime and expiry
+
+Tokens are valid for **12 hours** from the time of issue. After expiry:
+
+1. The server catches a `TokenExpiredError` from `jsonwebtoken`.
+2. The `token` cookie is cleared via `res.clearCookie`.
+3. A `401` response is returned with `message: 'SESSION_EXPIRED'`.
+
+Users must log in again to obtain a new token. There is no refresh token mechanism; the session window is fixed at 12 hours.

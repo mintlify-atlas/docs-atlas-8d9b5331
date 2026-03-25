@@ -1,0 +1,51 @@
+---
+title: "Introduction"
+description: "QuickFind API is a secure, production-ready REST API for authentication, user management, and role-based access control built with Node.js, Express, and PostgreSQL."
+---
+
+QuickFind API handles the full authentication lifecycle and user management for the QuickFind platform. It is designed to be deployed behind a reverse proxy or load balancer (NGINX, AWS ALB) and ships with security-hardened defaults out of the box.
+
+## Core concepts
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock" href="/auth/overview">
+    JWT tokens stored in HttpOnly cookies with a 12-hour expiry. Covers registration, login, logout, email verification, and password reset via OTP.
+  </Card>
+  <Card title="Security" icon="shield-check" href="/security/overview">
+    Helmet headers, CORS allowlist, rate limiting (300 req / 15 min per IP), bcryptjs password hashing, and trust-proxy configuration for AWS.
+  </Card>
+</CardGroup>
+
+## What QuickFind API provides
+
+- **Authentication** — Register, login, and logout with stateless JWT tokens stored in HttpOnly cookies.
+- **Email verification** — OTP-based account verification delivered via SMTP (Brevo, Gmail, or any compatible provider).
+- **Password reset** — Time-limited OTP (15-minute expiry) for secure, self-service password recovery.
+- **User management** — Admin-only CRUD operations on user accounts.
+- **Role-based access control (RBAC)** — Middleware-enforced route protection keyed by role ID.
+- **Area classification** — Level/area assignments for organizational hierarchy.
+
+## Technologies
+
+| Technology | Version | Purpose |
+|---|---|---|
+| **Node.js** | ES Modules | JavaScript runtime — server-side execution environment |
+| **Express** | ^5.2.1 | HTTP framework — routing, middleware pipeline, error handling |
+| **PostgreSQL** | — | Relational database — persistent storage for users, roles, and areas |
+| **Sequelize** | ^6.37.7 | ORM — model definitions, migrations, and connection pooling via `pg` |
+| **jsonwebtoken** | ^9.0.3 | JWT signing and verification for stateless authentication |
+| **bcryptjs** | ^3.0.3 | Password hashing with 10 salt rounds |
+| **Nodemailer** | ^7.0.11 | SMTP email delivery for OTP verification and password reset flows |
+| **Winston** | ^3.19.0 | Structured logging with monthly log rotation via `winston-daily-rotate-file` (10 MB max, 3 months retained) |
+| **Helmet** | ^8.1.0 | Security-related HTTP response headers |
+| **express-rate-limit** | ^8.2.1 | Per-IP request rate limiting |
+| **cookie-parser** | ^1.4.7 | Parses `Cookie` headers to expose `req.cookies` |
+
+## API resource groups
+
+| Resource | Base path | Description |
+|---|---|---|
+| Auth | `/api/auth` | Register, login, logout, email verification, password reset |
+| Users | `/api/user` | Profile retrieval and admin user management |
+| Roles | `/api/roles` | Role CRUD operations |
+| Level areas | `/api/levelArea` | Area/level classification CRUD |

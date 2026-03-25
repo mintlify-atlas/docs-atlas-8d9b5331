@@ -1,97 +1,74 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "QuickFind API"
+description: "Secure, production-ready REST API for authentication, user management, and role-based access control. Built with Node.js, Express, and PostgreSQL."
 ---
 
-## Setting up
-
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get your first authenticated request working in minutes.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Environment Setup" icon="gear" href="/environment-setup">
+    Configure your environment variables and database connection.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Authentication Guide" icon="lock" href="/auth/overview">
+    Learn how JWT tokens, cookies, and OTP verification work together.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="API Reference" icon="code" href="/api/auth/register">
+    Full endpoint documentation with request/response schemas.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## What is QuickFind API?
 
-Everything you need to create world-class documentation.
+QuickFind API is a secure backend service that handles the full authentication lifecycle and user management for the QuickFind platform. It provides:
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+- **Authentication** — Register, login, logout with JWT tokens stored in HttpOnly cookies
+- **Email verification** — OTP-based account verification via SMTP/Brevo
+- **Password reset** — Time-limited OTP (15-minute expiry) for secure password recovery
+- **User management** — Admin-only CRUD operations on user accounts
+- **Role-based access control** — Middleware-enforced permissions by role ID
+- **Area classification** — Level/area assignments for organizational hierarchy
 
-## Need inspiration?
+## Key capabilities
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<CardGroup cols={3}>
+  <Card title="JWT Authentication" icon="shield-check">
+    Stateless tokens with 12-hour expiry, stored in secure HttpOnly cookies.
+  </Card>
+  <Card title="Encrypted Passwords" icon="key">
+    bcryptjs hashing with 10 salt rounds — credentials are never stored in plaintext.
+  </Card>
+  <Card title="OTP Flows" icon="envelope">
+    6-digit one-time passwords sent via email for account verification and password reset.
+  </Card>
+  <Card title="Rate Limiting" icon="gauge">
+    300 requests per 15-minute window per IP with automatic block and logging.
+  </Card>
+  <Card title="RBAC Middleware" icon="users">
+    Role-based route protection via `requireRole` middleware.
+  </Card>
+  <Card title="DevSecOps Ready" icon="bug">
+    ESLint security plugin, Snyk, SonarQube, and OWASP ZAP integrated.
+  </Card>
+</CardGroup>
+
+## Base URL
+
+```
+http://localhost:4000
+```
+
+In production, replace with your deployed server address (e.g., AWS EC2 or load-balanced endpoint behind NGINX).
+
+## API overview
+
+| Resource | Base path | Description |
+|---|---|---|
+| Auth | `/api/auth` | Register, login, logout, email verification, password reset |
+| Users | `/api/user` | Profile retrieval and admin user management |
+| Roles | `/api/roles` | Role CRUD operations |
+| Level Areas | `/api/levelArea` | Area/level classification CRUD |
+
+<Note>
+All authenticated routes require a valid JWT token stored in the `token` cookie. Include `credentials: 'include'` (fetch) or `withCredentials: true` (Axios) in all cross-origin client requests.
+</Note>

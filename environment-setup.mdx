@@ -1,0 +1,132 @@
+---
+title: "Environment setup"
+description: "Configure all environment variables required to run the QuickFind API, including database, JWT, SMTP, and SSL settings."
+---
+
+QuickFind API reads its configuration exclusively from environment variables loaded by `dotenv`. Copy `.env.example` to `.env.development` (or `.env.production`) and set each value before starting the server.
+
+<Note>
+  Never commit `.env.development` or `.env.production` to version control. Only `.env.example` — which contains no real credentials — belongs in the repository.
+</Note>
+
+## Server config
+
+<ParamField path="PORT" type="number" default="4000">
+  The port the Express server listens on. The server defaults to `4000` when this variable is not set.
+</ParamField>
+
+<ParamField path="NODE_ENV" type="string" required>
+  The runtime environment. Accepted values: `development`, `staging`, `production`. Affects logging verbosity and certain security defaults.
+</ParamField>
+
+## Auth & security
+
+<ParamField path="JWT_SECRET" type="string" required>
+  The secret key used to sign and verify JWT tokens. Use a long, randomly generated string in production. Tokens have a 12-hour expiry and are stored in an HttpOnly cookie.
+
+  <Warning>
+    Never use a weak or guessable value in production. Rotate this secret if it is ever exposed.
+  </Warning>
+</ParamField>
+
+<ParamField path="ALLOWED_ORIGINS" type="string">
+  A comma-separated list of origins that the CORS middleware allows. Requests with an `Origin` header not in this list are rejected with a CORS error.
+
+  ```
+  ALLOWED_ORIGINS=https://app.example.com,https://admin.example.com
+  ```
+
+  Requests with no `Origin` header (curl, Postman, mobile apps) are always allowed regardless of this setting.
+
+  <Tip>For local development you can set this to `http://localhost:3000` or leave it empty if you are only calling the API from curl or Postman.</Tip>
+</ParamField>
+
+## Database config
+
+<ParamField path="DB_HOST" type="string" required>
+  The hostname or endpoint of your PostgreSQL server. For AWS RDS this is the full endpoint string (e.g., `mydb.xxxxxxxx.us-east-1.rds.amazonaws.com`).
+</ParamField>
+
+<ParamField path="DB_PORT" type="number" default="5432">
+  The port PostgreSQL is listening on. The standard PostgreSQL port is `5432`.
+</ParamField>
+
+<ParamField path="DB_NAME" type="string" required>
+  The name of the database to connect to.
+</ParamField>
+
+<ParamField path="DB_USER" type="string" required>
+  The PostgreSQL user account used by the API.
+</ParamField>
+
+<ParamField path="DB_PASSWORD" type="string" required>
+  The password for the PostgreSQL user account.
+</ParamField>
+
+## Database SSL
+
+AWS RDS requires SSL connections in most configurations. The API passes these variables directly to the Sequelize/`pg` SSL options.
+
+<ParamField path="DB_SSL" type="boolean" default="true">
+  Set to `true` to enable SSL on the database connection. Required for AWS RDS. Set to `false` for local PostgreSQL instances that do not have SSL configured.
+</ParamField>
+
+<ParamField path="DB_SSL_REJECT_UNAUTHORIZED" type="boolean" default="true">
+  When `true`, the TLS handshake rejects connections where the server certificate cannot be verified against a trusted CA. Set to `false` only during local development when self-signed certificates cause connection errors.
+
+  <Warning>
+    Always set `DB_SSL_REJECT_UNAUTHORIZED=true` in production to prevent man-in-the-middle attacks against the database connection.
+  </Warning>
+</ParamField>
+
+<Note>
+  When `DB_SSL=true` and `DB_SSL_REJECT_UNAUTHORIZED=true`, the server reads the CA certificate from `certs/global-bundle.pem` at startup. For AWS RDS, download the [AWS global certificate bundle](https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem) and place it at `certs/global-bundle.pem` in the project root.
+</Note>
+
+## Email / SMTP
+
+QuickFind API uses Nodemailer to send OTP emails for account verification and password reset. The SMTP transport is hardcoded to Brevo's relay (`smtp-relay.brevo.com` on port `587`). You must use a Brevo account and configure the credentials below.
+
+<Note>
+  To use a different SMTP provider, update the `host` and `port` values in `config/nodemailer.js`.
+</Note>
+
+<ParamField path="SMTP_USER" type="string" required>
+  The SMTP username or account identifier provided by your email service.
+</ParamField>
+
+<ParamField path="SMTP_PASS" type="string" required>
+  The SMTP password or API key for authenticating with your email service.
+</ParamField>
+
+<ParamField path="SENDER_EMAIL" type="string" required>
+  The email address that appears in the `From` field of all outgoing messages (e.g., `no-reply@yourdomain.com`).
+</ParamField>
+
+## Example `.env.development`
+
+```bash .env.development
+# Server
+PORT=4000
+NODE_ENV=development
+
+# Auth
+JWT_SECRET=replace_with_a_long_random_string
+ALLOWED_ORIGINS=http://localhost:3000
+
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=postgres
+DB_USER=postgres
+DB_PASSWORD=your_local_db_password
+
+# Database SSL (disable for local Postgres without SSL)
+DB_SSL=false
+DB_SSL_REJECT_UNAUTHORIZED=false
+
+# Email
+SMTP_USER=your_smtp_user
+SMTP_PASS=your_smtp_password
+SENDER_EMAIL=no-reply@yourdomain.com
+```

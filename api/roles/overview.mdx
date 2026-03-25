@@ -1,0 +1,279 @@
+---
+title: "Roles API"
+description: "CRUD endpoints for managing user roles in QuickFind."
+---
+
+The Roles API lets you create, read, update, and delete roles. Roles are assigned to users via the `rol_id` foreign key.
+
+<Info>
+  Two roles have fixed significance in the application: `role_id: 1` is the default role assigned to newly registered users, and `role_id: 3` is the admin role.
+</Info>
+
+<Warning>
+  None of the routes in this group require authentication. All five endpoints are publicly accessible without a session cookie.
+</Warning>
+
+---
+
+## POST /api/roles/
+
+Create a new role.
+
+### Body parameters
+
+<ParamField body="name" type="string" required>
+  Unique name for the role. Must be unique across all roles.
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Optional description of the role.
+</ParamField>
+
+### Responses
+
+<ResponseField name="rol_id" type="integer">
+  Auto-incremented primary key assigned to the new role.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The role name.
+</ResponseField>
+
+<ResponseField name="descripcion" type="string">
+  The role description.
+</ResponseField>
+
+```bash Example request
+curl --request POST \
+  --url https://your-api.example.com/api/roles/ \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "name": "editor",
+    "descripcion": "Can edit content but not manage users"
+  }'
+```
+
+```json 201 Created
+{
+  "rol_id": 4,
+  "name": "editor",
+  "descripcion": "Can edit content but not manage users",
+  "createdAt": "2026-03-25T10:00:00.000Z",
+  "updatedAt": "2026-03-25T10:00:00.000Z"
+}
+```
+
+```json 500 Internal Server Error
+{
+  "message": "Error message describing what went wrong"
+}
+```
+
+---
+
+## GET /api/roles/
+
+Return all roles.
+
+### Responses
+
+Returns a JSON array of all role objects.
+
+<ResponseField name="[]\.rol_id" type="integer">
+  The role's primary key.
+</ResponseField>
+
+<ResponseField name="[]\.name" type="string">
+  The role name.
+</ResponseField>
+
+<ResponseField name="[]\.descripcion" type="string">
+  The role description.
+</ResponseField>
+
+```bash Example request
+curl --request GET \
+  --url https://your-api.example.com/api/roles/
+```
+
+```json 200 OK
+[
+  {
+    "rol_id": 1,
+    "name": "user",
+    "descripcion": "Default user role",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "rol_id": 3,
+    "name": "admin",
+    "descripcion": "Administrator",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  }
+]
+```
+
+```json 500 Internal Server Error
+{
+  "message": "Error message describing what went wrong"
+}
+```
+
+---
+
+## GET /api/roles/:id
+
+Return a single role by its primary key.
+
+### Path parameters
+
+<ParamField path="id" type="integer" required>
+  The `rol_id` of the role to retrieve.
+</ParamField>
+
+### Responses
+
+<ResponseField name="rol_id" type="integer">
+  The role's primary key.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The role name.
+</ResponseField>
+
+<ResponseField name="descripcion" type="string">
+  The role description.
+</ResponseField>
+
+```bash Example request
+curl --request GET \
+  --url https://your-api.example.com/api/roles/1
+```
+
+```json 200 OK
+{
+  "rol_id": 1,
+  "name": "user",
+  "descripcion": "Default user role",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "updatedAt": "2026-01-01T00:00:00.000Z"
+}
+```
+
+```json 404 Not Found
+{
+  "message": "Rol no encontrado"
+}
+```
+
+```json 500 Internal Server Error
+{
+  "message": "Error message describing what went wrong"
+}
+```
+
+---
+
+## PUT /api/roles/:id
+
+Update an existing role. All fields in the request body are passed directly to the update operation.
+
+### Path parameters
+
+<ParamField path="id" type="integer" required>
+  The `rol_id` of the role to update.
+</ParamField>
+
+### Body parameters
+
+<ParamField body="name" type="string">
+  Updated role name. Must remain unique.
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Updated role description.
+</ParamField>
+
+### Responses
+
+<ResponseField name="rol_id" type="integer">
+  The role's primary key.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The updated role name.
+</ResponseField>
+
+<ResponseField name="descripcion" type="string">
+  The updated role description.
+</ResponseField>
+
+```bash Example request
+curl --request PUT \
+  --url https://your-api.example.com/api/roles/4 \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "descripcion": "Can edit and publish content"
+  }'
+```
+
+```json 200 OK
+{
+  "rol_id": 4,
+  "name": "editor",
+  "descripcion": "Can edit and publish content",
+  "createdAt": "2026-03-25T10:00:00.000Z",
+  "updatedAt": "2026-03-25T10:05:00.000Z"
+}
+```
+
+```json 404 Not Found
+{
+  "message": "Rol no encontrado"
+}
+```
+
+```json 500 Internal Server Error
+{
+  "message": "Error message describing what went wrong"
+}
+```
+
+---
+
+## DELETE /api/roles/:id
+
+Permanently delete a role.
+
+### Path parameters
+
+<ParamField path="id" type="integer" required>
+  The `rol_id` of the role to delete.
+</ParamField>
+
+### Responses
+
+Returns `204 No Content` with no response body on success.
+
+```bash Example request
+curl --request DELETE \
+  --url https://your-api.example.com/api/roles/4
+```
+
+```text 204 No Content
+(no body)
+```
+
+```json 404 Not Found
+{
+  "message": "Rol no encontrado"
+}
+```
+
+```json 500 Internal Server Error
+{
+  "message": "Error message describing what went wrong"
+}
+```

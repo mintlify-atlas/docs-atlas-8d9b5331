@@ -1,0 +1,59 @@
+---
+title: "Logout"
+description: "End the current session and clear the authentication cookie"
+---
+
+`POST /api/auth/logout`
+
+Clears the `token` authentication cookie, ending the user's session. No request body is required. If no cookie is present, the endpoint still returns a success response.
+
+## Request body
+
+None.
+
+## Response
+
+<ResponseField name="success" type="boolean">
+  `true` when the cookie was cleared successfully, `false` if an unexpected error occurred.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  `"Logged Out"` on success, or an error message string on failure.
+</ResponseField>
+
+## Example
+
+```bash
+curl -X POST http://localhost:4000/api/auth/logout \
+  -b cookies.txt \
+  -c cookies.txt
+```
+
+### Success response
+
+```json
+{
+  "success": true,
+  "message": "Logged Out"
+}
+```
+
+### Error response
+
+```json
+{
+  "success": false,
+  "message": "..."
+}
+```
+
+## Error codes
+
+| HTTP status | `success` | `message` | Cause |
+|-------------|-----------|-----------|-------|
+| 200 | `true` | `Logged Out` | Cookie cleared successfully |
+| 200 | `false` | *(error message)* | Unexpected server error while clearing the cookie |
+
+<Note>
+  Authentication is not required to call this endpoint. It is safe to call even when the user is not logged in.
+</Note>

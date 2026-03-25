@@ -1,0 +1,122 @@
+---
+title: "Register"
+description: "Create a new user account"
+---
+
+`POST /api/auth/register`
+
+Creates a new user account with the default role (`1`) and area (`9`). On success, sends a welcome email and sets an `HttpOnly` authentication cookie valid for 12 hours.
+
+<Warning>
+  The `rol_id` and `area_id` fields are accepted in the request body but are **restricted**. Any value other than `1` (for `rol_id`) or `9` (for `area_id`) returns a `403 Forbidden` response. Omit these fields for standard registration.
+</Warning>
+
+## Request body
+
+<ParamField body="email" type="string" required>
+  The user's email address. Must be unique across all accounts.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  The user's password. Stored as a bcrypt hash (10 rounds); never stored in plaintext.
+</ParamField>
+
+<ParamField body="name" type="string" required>
+  The user's first name.
+</ParamField>
+
+<ParamField body="surname" type="string" required>
+  The user's last name.
+</ParamField>
+
+<ParamField body="country" type="string" required>
+  The user's country of residence.
+</ParamField>
+
+<ParamField body="birth_date" type="string" required>
+  The user's date of birth as an ISO 8601 date string (e.g. `"1990-06-15"`).
+</ParamField>
+
+<ParamField body="rol_id" type="integer">
+  Role identifier. Must be `1` or omitted. Any other value returns `403`.
+</ParamField>
+
+<ParamField body="area_id" type="integer">
+  Area identifier. Must be `9` or omitted. Any other value returns `403`.
+</ParamField>
+
+## Response
+
+<ResponseField name="success" type="boolean">
+  `true` when registration succeeds, `false` on any failure.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Human-readable status message. Present on both success and error responses.
+</ResponseField>
+
+## Example
+
+```bash
+curl -X POST http://localhost:4000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -c cookies.txt \
+  -d '{
+    "email": "jane@example.com",
+    "password": "s3cur3P@ssw0rd",
+    "name": "Jane",
+    "surname": "Doe",
+    "country": "US",
+    "birth_date": "1990-06-15"
+  }'
+```
+
+### Success response
+
+```json
+{
+  "success": true,
+  "message": "Registrado exitosamente"
+}
+```
+
+### Error responses
+
+```json
+{
+  "success": false,
+  "message": "User already exists"
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "Missing Details"
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "Acceso Denegado: No tienes permitido asignar roles o áreas personalizadas."
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "Error de Validación: Validation len on email failed"
+}
+```
+
+## Error codes
+
+| HTTP status | `success` | `message` | Cause |
+|-------------|-----------|-----------|-------|
+| 200 | `true` | `Registrado exitosamente` | Account created successfully |
+| 200 | `false` | `User already exists` | An account with that email already exists |
+| 200 | `false` | `Missing Details` | One or more required fields were omitted |
+| 400 | `false` | `Error de Validación: ...` | Sequelize validation or unique constraint error |
+| 403 | `false` | `Acceso Denegado: ...` | `rol_id` ≠ 1 or `area_id` ≠ 9 |
+| 500 | `false` | *(error message)* | Unexpected server error |
